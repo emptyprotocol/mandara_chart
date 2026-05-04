@@ -55,7 +55,7 @@ window['ai_edge_gallery_get_result'] = async (data) => {
       ? 'マンダラチャートを生成しました。プレビューをタップして拡大表示できます。'
       : 'Generated your mandala chart. Tap the preview to view it full-size.',
     webview: {
-      url: '../assets/mandala.html?d=' + encodeURIComponent(b64),
+      url: 'mandala.html?d=' + encodeURIComponent(b64),
       aspectRatio: 1.0,
     },
   });
