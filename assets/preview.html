@@ -7,7 +7,7 @@
 <style>
   body {
     margin: 0;
-    height: 200vh;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -21,76 +21,78 @@
     box-sizing: border-box;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
-    cursor: pointer;
   }
-  .icon { font-size: 56px; margin-bottom: 12px; line-height: 1; }
-  h2 { margin: 0 0 12px; font-size: 22px; color: #e2b96f; font-weight: 700; }
-  .theme { margin: 4px 0 18px; font-size: 16px; color: #fff; word-break: break-word; max-width: 90%; }
-  p { margin: 0 0 20px; color: #aaa; font-size: 13px; line-height: 1.6; }
-  .btn {
+  .icon {
+    display: grid;
+    grid-template-columns: repeat(3, 22px);
+    grid-template-rows: repeat(3, 22px);
+    gap: 3px;
+    margin-bottom: 18px;
+  }
+  .icon > div { background: #e2b96f; border-radius: 3px; opacity: 0.45; }
+  .icon > div:nth-child(5) { opacity: 1; }
+  h2 { margin: 0 0 10px; font-size: 22px; color: #e2b96f; font-weight: 700; }
+  .theme {
+    margin: 4px 0 18px;
+    font-size: 17px;
+    line-height: 1.4;
+    color: #fff;
+    word-break: break-word;
+    max-width: 92%;
+    font-weight: 600;
+  }
+  p {
+    margin: 0;
+    color: #aaa;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  a.full {
+    margin-top: 22px;
+    display: inline-block;
     background: #e2b96f;
     color: #1a1a2e;
-    padding: 14px 28px;
+    padding: 12px 26px;
     border-radius: 999px;
     font-weight: 700;
-    font-size: 15px;
-    box-shadow: 0 6px 16px rgba(226,185,111,0.3);
+    font-size: 14px;
+    text-decoration: none;
   }
-  .btn:active { transform: scale(0.96); }
-  .grid-mini {
-    display: grid;
-    grid-template-columns: repeat(3, 18px);
-    grid-template-rows: repeat(3, 18px);
-    gap: 2px;
-    margin-bottom: 16px;
-  }
-  .grid-mini > div { background: #e2b96f; border-radius: 2px; opacity: 0.4; }
-  .grid-mini > div:nth-child(5) { opacity: 1; }
+  a.full:active { transform: scale(0.96); }
 </style>
 </head>
 <body>
-  <div class="grid-mini">
-    <div></div><div></div><div></div>
-    <div></div><div></div><div></div>
-    <div></div><div></div><div></div>
-  </div>
-  <h2 id="lblTitle">マンダラチャート完成</h2>
+  <div class="icon"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+  <h2 id="lblTitle">マンダラチャート</h2>
   <div class="theme" id="theme"></div>
-  <p id="hint">タップして9×9グリッドを開く</p>
-  <div class="btn" id="btn">開く</div>
+  <p id="hint">タップで全画面表示</p>
+  <a class="full" id="btn" href="#">9×9を開く</a>
 
 <script>
   (function () {
-    const params = new URLSearchParams(location.search);
-    const d = params.get('d') || '';
-
-    // Decode just the mainTheme + language for the preview label
-    let mainTheme = '';
-    let lang = 'ja';
     try {
-      const decoded = decodeURIComponent(escape(atob(d)));
-      const obj = JSON.parse(decoded);
-      mainTheme = obj.mainTheme || '';
-      lang = obj.language === 'en' ? 'en' : 'ja';
-    } catch (e) {
-      // best-effort; leave defaults
-    }
+      const params = new URLSearchParams(location.search);
+      const d = params.get('d') || '';
+      let mainTheme = '';
+      let lang = 'ja';
+      try {
+        const decoded = decodeURIComponent(escape(atob(d)));
+        const obj = JSON.parse(decoded);
+        mainTheme = obj.mainTheme || '';
+        lang = obj.language === 'en' ? 'en' : 'ja';
+      } catch (_) {}
 
-    if (lang === 'en') {
-      document.documentElement.lang = 'en';
-      document.getElementById('lblTitle').textContent = 'Mandala Chart Ready';
-      document.getElementById('hint').textContent = 'Tap to open the 9x9 grid';
-      document.getElementById('btn').textContent = 'Open';
-    }
-    document.getElementById('theme').textContent = mainTheme;
+      if (lang === 'en') {
+        document.documentElement.lang = 'en';
+        document.getElementById('lblTitle').textContent = 'Mandala Chart';
+        document.getElementById('hint').textContent = 'Tap to open full size';
+        document.getElementById('btn').textContent = 'Open 9×9 grid';
+      }
+      document.getElementById('theme').textContent = mainTheme;
 
-    const target = 'mandala.html?d=' + encodeURIComponent(d) + '&v=' + Date.now();
-    const go = (e) => {
-      if (e) e.preventDefault();
-      window.location.href = target;
-    };
-    document.body.addEventListener('click', go);
-    document.body.addEventListener('touchstart', go, { passive: true });
+      const target = 'mandala.html?d=' + encodeURIComponent(d);
+      document.getElementById('btn').href = target;
+    } catch (_) {}
   })();
 </script>
 </body>
