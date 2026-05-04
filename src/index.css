@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+}
+
+.cell-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-all;
+}
+
+/* ── Container query: font scales with grid width ── */
+.mandala-grid-container {
+  container-type: inline-size;
+  container-name: mandala;
+  width: 100%;
+}
+
+@container mandala (min-width: 1px) {
+  .cell-text-main   { font-size: clamp(9px,  1.9cqw, 20px); }
+  .cell-text-sub    { font-size: clamp(8px,  1.3cqw, 14px); }
+  .cell-text-action { font-size: clamp(7px,  1.05cqw, 11px); }
+}
+
+/* ── Print ── */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
+  /* すべての色を強制出力 */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  /* 印刷不要な要素を非表示 */
+  .no-print {
+    display: none !important;
+  }
+
+  /* ラッパーのパディング・余白をリセット */
+  .app-wrapper {
+    background: white !important;
+    min-height: unset !important;
+    display: block !important;
+  }
+
+  .app-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* グリッド全体をA4横向きいっぱいに展開
+     A4横 210mm - margin 8mm×2 = 194mm (高さ制約)
+     タイトル 約7mm + gap 2mm + grid = 185mm → 合計 194mm */
+  .mandala-grid-container {
+    container-type: normal;
+    width: 183mm !important;
+    height: 183mm !important;
+    margin: 0 auto !important;
+  }
+
+  .mandala-outer-grid {
+    height: 100% !important;
+    grid-template-rows: repeat(3, 1fr) !important;
+    gap: 3px !important;
+  }
+
+  .mandala-block {
+    aspect-ratio: unset !important;
+    height: 100% !important;
+    grid-template-rows: repeat(3, 1fr) !important;
+    gap: 1px !important;
+  }
+
+  .mandala-cell {
+    aspect-ratio: unset !important;
+    min-height: unset !important;
+    height: 100% !important;
+  }
+
+  .cell-text-main   { font-size: 8pt !important; }
+  .cell-text-sub    { font-size: 7pt !important; }
+  .cell-text-action { font-size: 6pt !important; }
+
+  /* 印刷時タイトル */
+  .print-only {
+    display: block !important;
+    text-align: center;
+    font-size: 10pt;
+    font-weight: bold;
+    margin-bottom: 2mm;
+    color: #1a1a2e;
+  }
+}
+
+.print-only {
+  display: none;
+}

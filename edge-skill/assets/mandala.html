@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mandala Chart</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --main-bg: #1a1a2e;
+    --main-border: #16213e;
+    --main-fg: #e2b96f;
+    --neutral-fg: #212529;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--neutral-fg);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo',
+                 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  .wrap {
+    padding: 12px 12px 24px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .title {
+    margin: 4px 0 10px;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    color: #1a1a2e;
+    word-break: break-word;
+  }
+  .grid-container {
+    container-type: inline-size;
+    container-name: mandala;
+    width: 100%;
+  }
+  .outer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(3px, 0.8%, 8px);
+  }
+  .block {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    aspect-ratio: 1 / 1;
+    gap: clamp(1px, 0.3%, 3px);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #dee2e6;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    background: #dee2e6;
+  }
+  .cell {
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3%;
+    overflow: hidden;
+    background: #f8f9fa;
+    color: var(--neutral-fg);
+    border: 1px solid #dee2e6;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+    transition: transform 0.1s ease;
+  }
+  .cell:active { transform: scale(0.96); }
+  .cell-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+    line-height: 1.3;
+    text-align: center;
+  }
+  @container mandala (min-width: 1px) {
+    .cell-text-main   { font-size: clamp(10px, 2.2cqw, 22px); font-weight: 700; }
+    .cell-text-sub    { font-size: clamp(8px,  1.4cqw, 15px); font-weight: 600; }
+    .cell-text-action { font-size: clamp(7px,  1.05cqw, 11px); }
+  }
+  .cell.main {
+    background: var(--main-bg);
+    color: var(--main-fg);
+    border-color: var(--main-border);
+  }
+  .toolbar {
+    margin-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .btn {
+    appearance: none;
+    border: 1px solid #cfd4dc;
+    background: #fff;
+    color: #212529;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+  .err {
+    color: #b00020;
+    background: #fff5f5;
+    border: 1px solid #ffd1d1;
+    padding: 16px;
+    margin: 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Modal: tap a cell to expand */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 10;
+  }
+  .modal.show { display: flex; }
+  .modal-inner {
+    background: #fff;
+    border-radius: 16px;
+    padding: 22px 18px;
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  }
+  .modal-label {
+    font-size: 11px;
+    color: #6b7280;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .modal-text {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.5;
+    word-break: break-word;
+    margin: 6px 0 14px;
+  }
+</style>
+</head>
+<body>
+
+<div id="root">
+  <div class="wrap">
+    <div class="title" id="title"></div>
+    <div class="grid-container">
+      <div class="outer-grid" id="grid"></div>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" id="saveBtn">画像として保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-inner">
+    <div class="modal-label" id="modalLabel"></div>
+    <div class="modal-text" id="modalText"></div>
+    <button class="btn" id="modalClose">閉じる</button>
+  </div>
+</div>
+
+<script>
+  const POSITION_TO_INDEX = {
+    '0,0': 0, '0,1': 1, '0,2': 2,
+    '1,0': 3,            '1,2': 4,
+    '2,0': 5, '2,1': 6, '2,2': 7
+  };
+  const THEME_HUES = [0, 30, 60, 120, 175, 210, 260, 320];
+  const I18N = {
+    ja: { save: '画像として保存', close: '閉じる', main: 'メインテーマ', sub: 'サブテーマ', action: 'アクション', empty: 'データがありません', errParse: 'チャートデータの読み込みに失敗しました' },
+    en: { save: 'Save as image', close: 'Close', main: 'MAIN GOAL', sub: 'SUB-THEME', action: 'ACTION', empty: 'No chart data', errParse: 'Failed to load chart data' }
+  };
+
+  function hsl(h, l) { return 'hsl(' + h + ',65%,' + l + '%)'; }
+
+  function decodePayload() {
+    const params = new URLSearchParams(location.search);
+    let raw = params.get('d');
+    if (!raw) return null;
+    raw = raw.replace(/-/g, '+').replace(/_/g, '/');
+    while (raw.length % 4) raw += '=';
+    const decoded = decodeURIComponent(escape(atob(raw)));
+    return JSON.parse(decoded);
+  }
+
+  function showError(msg) {
+    document.getElementById('root').innerHTML = '<div class="err">' + msg + '</div>';
+  }
+
+  function getCellInfo(blockRow, blockCol, cellRow, cellCol, data) {
+    const isCenterBlock = blockRow === 1 && blockCol === 1;
+    if (isCenterBlock) {
+      if (cellRow === 1 && cellCol === 1) {
+        return { text: data.mainTheme, type: 'main', hue: null };
+      }
+      const idx = POSITION_TO_INDEX[cellRow + ',' + cellCol];
+      const sub = data.subThemes[idx];
+      return { text: sub.theme, type: 'subTheme', hue: THEME_HUES[idx] };
+    }
+    const subIdx = POSITION_TO_INDEX[blockRow + ',' + blockCol];
+    const sub = data.subThemes[subIdx];
+    const hue = THEME_HUES[subIdx];
+    if (cellRow === 1 && cellCol === 1) {
+      return { text: sub.theme, type: 'subTheme', hue };
+    }
+    const actionIdx = POSITION_TO_INDEX[cellRow + ',' + cellCol];
+    return { text: sub.actions[actionIdx] || '', type: 'action', hue };
+  }
+
+  function styleCell(cellEl, info) {
+    cellEl.classList.add('cell');
+    const span = document.createElement('span');
+    span.className = 'cell-text';
+    span.textContent = info.text || '';
+    if (info.type === 'main') {
+      cellEl.classList.add('main');
+      span.classList.add('cell-text-main');
+    } else if (info.type === 'subTheme') {
+      cellEl.style.background = hsl(info.hue, 42);
+      cellEl.style.borderColor = hsl(info.hue, 35);
+      cellEl.style.color = '#fff';
+      span.classList.add('cell-text-sub');
+    } else {
+      cellEl.style.background = hsl(info.hue, 95);
+      cellEl.style.borderColor = hsl(info.hue, 80);
+      cellEl.style.color = hsl(info.hue, 22);
+      span.classList.add('cell-text-action');
+    }
+    cellEl.appendChild(span);
+  }
+
+  function buildGrid(data, t) {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    for (let blockRow = 0; blockRow < 3; blockRow++) {
+      for (let blockCol = 0; blockCol < 3; blockCol++) {
+        const block = document.createElement('div');
+        block.className = 'block';
+        const isCenter = blockRow === 1 && blockCol === 1;
+        const subIdx = isCenter ? -1 : POSITION_TO_INDEX[blockRow + ',' + blockCol];
+        if (isCenter) {
+          block.style.borderColor = '#1a1a2e';
+        } else if (subIdx >= 0) {
+          block.style.borderColor = hsl(THEME_HUES[subIdx], 60);
+        }
+        for (let cellRow = 0; cellRow < 3; cellRow++) {
+          for (let cellCol = 0; cellCol < 3; cellCol++) {
+            const info = getCellInfo(blockRow, blockCol, cellRow, cellCol, data);
+            const cellEl = document.createElement('div');
+            styleCell(cellEl, info);
+            cellEl.addEventListener('click', () => openModal(info, t));
+            block.appendChild(cellEl);
+          }
+        }
+        grid.appendChild(block);
+      }
+    }
+  }
+
+  function openModal(info, t) {
+    if (!info.text) return;
+    const label = info.type === 'main' ? t.main : info.type === 'subTheme' ? t.sub : t.action;
+    document.getElementById('modalLabel').textContent = label;
+    document.getElementById('modalText').textContent = info.text;
+    document.getElementById('modal').classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('show');
+  }
+
+  async function saveAsImage(data) {
+    const node = document.querySelector('.grid-container');
+    const w = node.offsetWidth;
+    const h = node.offsetHeight;
+    const scale = 2;
+    const svgNS = 'http://www.w3.org/2000/svg';
+    // Use foreignObject to rasterize the DOM
+    const xml = new XMLSerializer().serializeToString(node);
+    const svg =
+      '<svg xmlns="' + svgNS + '" width="' + (w * scale) + '" height="' + (h * scale) + '" viewBox="0 0 ' + w + ' ' + h + '">' +
+        '<foreignObject width="100%" height="100%">' +
+          '<div xmlns="http://www.w3.org/1999/xhtml" style="font-family:\'Hiragino Kaku Gothic ProN\',Meiryo,sans-serif;">' +
+            xml +
+          '</div>' +
+        '</foreignObject>' +
+      '</svg>';
+    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+    const canvas = document.createElement('canvas');
+    canvas.width = w * scale;
+    canvas.height = h * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    const dataUrl = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = 'mandala-' + (data.mainTheme || 'chart').replace(/[\\/:*?"<>|\s]/g, '_') + '.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function init() {
+    let data;
+    try {
+      data = decodePayload();
+    } catch (e) {
+      showError(I18N.ja.errParse + ': ' + e.message);
+      return;
+    }
+    if (!data) {
+      showError(I18N.ja.empty);
+      return;
+    }
+    const lang = data.language === 'en' ? 'en' : 'ja';
+    const t = I18N[lang];
+    document.documentElement.lang = lang;
+
+    document.getElementById('title').textContent = data.mainTheme || '';
+    document.getElementById('saveBtn').textContent = t.save;
+    document.getElementById('modalClose').textContent = t.close;
+
+    buildGrid(data, t);
+
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      saveAsImage(data).catch((e) => alert('Save failed: ' + e.message));
+    });
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('modal').addEventListener('click', (e) => {
+      if (e.target.id === 'modal') closeModal();
+    });
+  }
+
+  init();
+</script>
+</body>
+</html>
