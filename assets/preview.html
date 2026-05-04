@@ -41,12 +41,7 @@
     max-width: 92%;
     font-weight: 600;
   }
-  p {
-    margin: 0;
-    color: #aaa;
-    font-size: 13px;
-    line-height: 1.5;
-  }
+  p { margin: 0; color: #aaa; font-size: 13px; line-height: 1.5; }
   a.full {
     margin-top: 22px;
     display: inline-block;
@@ -69,18 +64,14 @@
   <a class="full" id="btn" href="#">9×9を開く</a>
 
 <script>
+  // Lightweight: read t/l from URL directly, never decode the heavy d=.
+  // Forward the d= blob verbatim to mandala.html on tap.
   (function () {
     try {
       const params = new URLSearchParams(location.search);
+      const theme = params.get('t') || '';
+      const lang = params.get('l') === 'en' ? 'en' : 'ja';
       const d = params.get('d') || '';
-      let mainTheme = '';
-      let lang = 'ja';
-      try {
-        const decoded = decodeURIComponent(escape(atob(d)));
-        const obj = JSON.parse(decoded);
-        mainTheme = obj.mainTheme || '';
-        lang = obj.language === 'en' ? 'en' : 'ja';
-      } catch (_) {}
 
       if (lang === 'en') {
         document.documentElement.lang = 'en';
@@ -88,11 +79,9 @@
         document.getElementById('hint').textContent = 'Tap to open full size';
         document.getElementById('btn').textContent = 'Open 9×9 grid';
       }
-      document.getElementById('theme').textContent = mainTheme;
-
-      const target = 'mandala.html?d=' + encodeURIComponent(d);
-      document.getElementById('btn').href = target;
-    } catch (_) {}
+      document.getElementById('theme').textContent = theme;
+      document.getElementById('btn').href = 'mandala.html?d=' + encodeURIComponent(d);
+    } catch (_) { /* ignore */ }
   })();
 </script>
 </body>

@@ -26,4 +26,5 @@ Call the `run_js` tool with `data` set to a JSON string with these fields:
 Sub-themes should cover diverse angles of the main goal (e.g. 技術/体力/精神/人間性/運/感性/環境/習慣).
 
 DO NOT use any other tool. DO NOT call `run_intent`.
-DO NOT output the JSON or describe the cells in chat — the preview card already shows everything. After `run_js` returns, tell the user one short sentence to tap the preview card. Then stop.
+DO NOT output the JSON or describe the cells in chat — the preview card already shows everything.
+**Call `run_js` exactly once per user request, regardless of what it returns.** Even if `run_js` returns an error, do NOT retry it, do NOT apologize, do NOT regenerate. Tell the user one short sentence (e.g. "マンダラチャートを生成しました。プレビューをタップしてください。" / "Mandala chart ready — tap the preview to view.") and stop.
