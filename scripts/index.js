@@ -44,7 +44,7 @@ window['ai_edge_gallery_get_result'] = async (dataStr) => {
 
   const json = JSON.stringify(payload);
   const b64 = btoa(unescape(encodeURIComponent(json)));
-  const fullUrl = 'mandala.html?d=' + encodeURIComponent(b64) + '&v=' + Date.now();
+  const fullUrl = 'preview.html?d=' + encodeURIComponent(b64) + '&v=' + Date.now();
 
   return JSON.stringify({
     webview: { url: fullUrl },
