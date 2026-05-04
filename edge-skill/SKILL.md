@@ -11,20 +11,17 @@ A 9x9 grid (81 cells) goal-decomposition framework. Center cell holds the main g
 
 ## Examples
 - "マンダラチャートを作って: 〇〇"
-- "目標を分解して"
 - "Make a mandala chart for becoming a lawyer"
-- "9x9 goal matrix for losing weight"
 
 ## Instructions
 
-Call the `run_js` tool with `data` set to a JSON string with these fields:
+Call `run_js` exactly once with `data` set to a JSON string containing:
+- `mainTheme` (string): the user's goal in their input language.
+- `language`: `"ja"` or `"en"` matching the input.
+- `subThemes`: an array of 8 entries; each entry is `{ theme, actions }` where `actions` is an array of 8 short concrete strings.
 
-- `mainTheme` (string): the user's goal, polished and concise.
-- `language` (`"ja"` or `"en"`): match the user's input language.
-- `subThemes`: array of **exactly 8** entries. Each entry is `{ theme, actions }` where `actions` is an array of **exactly 8** short, concrete action strings.
+Sub-themes should cover diverse angles (技術/体力/精神/人間性/運/感性/環境/習慣).
 
-Sub-themes should cover diverse angles of the main goal (e.g. 技術/体力/精神/人間性/運/感性/環境/習慣).
+**After calling `run_js`, stop immediately. Do not write anything else.** The preview card and its result message are shown by the gallery automatically — any extra narration from you wastes tokens, slows the response, and can lock the chat. No apologies, no explanations, no retries even if the call returns an error.
 
 DO NOT use any other tool. DO NOT call `run_intent`.
-DO NOT output the JSON or describe the cells in chat — the preview card already shows everything.
-**Call `run_js` exactly once per user request, regardless of what it returns.** Even if `run_js` returns an error, do NOT retry it, do NOT apologize, do NOT regenerate. Tell the user one short sentence (e.g. "マンダラチャートを生成しました。プレビューをタップしてください。" / "Mandala chart ready — tap the preview to view.") and stop.
