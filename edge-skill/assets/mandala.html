@@ -199,10 +199,8 @@
 
   function decodePayload() {
     const params = new URLSearchParams(location.search);
-    let raw = params.get('d');
+    const raw = params.get('d');
     if (!raw) return null;
-    raw = raw.replace(/-/g, '+').replace(/_/g, '/');
-    while (raw.length % 4) raw += '=';
     const decoded = decodeURIComponent(escape(atob(raw)));
     return JSON.parse(decoded);
   }
