@@ -1,65 +1,11 @@
 <!doctype html>
-<html>
-<head><meta charset="utf-8"><title>mandala-chart entry</title></head>
-<body>
-<script>
-window['ai_edge_gallery_get_result'] = async (data) => {
-  const fail = (msg) => JSON.stringify({ error: msg });
-
-  let parsed;
-  try {
-    parsed = typeof data === 'string' ? JSON.parse(data) : data;
-  } catch (e) {
-    return fail('Invalid JSON: ' + e.message);
-  }
-
-  if (!parsed || typeof parsed !== 'object') {
-    return fail('Expected a JSON object with mainTheme and subThemes.');
-  }
-  if (typeof parsed.mainTheme !== 'string' || !parsed.mainTheme.trim()) {
-    return fail('mainTheme is required and must be a non-empty string.');
-  }
-  if (!Array.isArray(parsed.subThemes) || parsed.subThemes.length !== 8) {
-    return fail('subThemes must be an array of exactly 8 entries.');
-  }
-  for (let i = 0; i < 8; i++) {
-    const s = parsed.subThemes[i];
-    if (!s || typeof s.theme !== 'string' || !s.theme.trim()) {
-      return fail('subThemes[' + i + '].theme is required.');
-    }
-    if (!Array.isArray(s.actions) || s.actions.length !== 8) {
-      return fail('subThemes[' + i + '].actions must have exactly 8 strings.');
-    }
-    for (let j = 0; j < 8; j++) {
-      if (typeof s.actions[j] !== 'string') {
-        return fail('subThemes[' + i + '].actions[' + j + '] must be a string.');
-      }
-    }
-  }
-
-  const lang = parsed.language === 'en' ? 'en' : 'ja';
-  const payload = {
-    mainTheme: parsed.mainTheme,
-    language: lang,
-    subThemes: parsed.subThemes.map((s) => ({
-      theme: s.theme,
-      actions: s.actions.slice(0, 8),
-    })),
-  };
-
-  const utf8 = unescape(encodeURIComponent(JSON.stringify(payload)));
-  const b64 = btoa(utf8).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-  return JSON.stringify({
-    result: lang === 'ja'
-      ? 'マンダラチャートを生成しました。プレビューをタップして拡大表示できます。'
-      : 'Generated your mandala chart. Tap the preview to view it full-size.',
-    webview: {
-      url: 'mandala.html?d=' + encodeURIComponent(b64),
-      aspectRatio: 1.0,
-    },
-  });
-};
-</script>
-</body>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mandala Chart Skill</title>
+  </head>
+  <body>
+    <script src="index.js"></script>
+  </body>
 </html>
