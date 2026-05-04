@@ -2,7 +2,7 @@
 name: mandala-chart
 description: Generate a 9x9 Mandala Chart (Ohtani-style) from a goal. Produces 8 sub-themes and 64 actions, then renders an interactive grid in the chat. Supports Japanese and English. マンダラチャート（大谷翔平方式の目標達成シート）を生成します。
 metadata:
-  homepage: https://github.com/google-ai-edge/gallery
+  homepage: https://emptyprotocol.github.io/mandara_chart/
 ---
 
 # Mandala Chart Skill / マンダラチャートスキル
