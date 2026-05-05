@@ -3,6 +3,7 @@ import { MandalaData, POSITION_TO_INDEX, THEME_HUES } from '../types/mandala'
 interface Props {
   data: MandalaData | null
   isGenerating: boolean
+  onCellClick?: (text: string) => void
 }
 
 function getThemeColor(hue: number, lightness: number) {
@@ -51,7 +52,12 @@ function getCellInfo(
   }
 }
 
-function Cell({ info }: { info: CellInfo }) {
+interface CellProps {
+  info: CellInfo
+  onCellClick?: (text: string) => void
+}
+
+function Cell({ info, onCellClick }: CellProps) {
   const { text, type, hue, isGenerating } = info
 
   let bg = '#f8f9fa'
@@ -80,9 +86,14 @@ function Cell({ info }: { info: CellInfo }) {
     type === 'subTheme' ? 'cell-text cell-text-sub' :
     'cell-text cell-text-action'
 
+  // メインテーマ以外で内容があればクリック可能
+  const isClickable = type !== 'main' && !!text && !!onCellClick
+
   return (
     <div
-      className="mandala-cell"
+      className={`mandala-cell${isClickable ? ' mandala-cell-clickable' : ''}`}
+      onClick={isClickable ? () => onCellClick!(text!) : undefined}
+      title={isClickable ? `「${text}」からチャートを生成` : undefined}
       style={{
         backgroundColor: bg,
         border: `1px solid ${border}`,
@@ -93,7 +104,7 @@ function Cell({ info }: { info: CellInfo }) {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '3%',
-        transition: 'background-color 0.3s',
+        transition: 'background-color 0.3s, filter 0.15s',
         overflow: 'hidden',
       }}
     >
@@ -117,7 +128,7 @@ function Cell({ info }: { info: CellInfo }) {
   )
 }
 
-export default function MandaraGrid({ data, isGenerating }: Props) {
+export default function MandaraGrid({ data, isGenerating, onCellClick }: Props) {
   return (
     <div className="mandala-grid-container">
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -156,7 +167,13 @@ export default function MandaraGrid({ data, isGenerating }: Props) {
                 {Array.from({ length: 3 }, (_, cellRow) =>
                   Array.from({ length: 3 }, (_, cellCol) => {
                     const info = getCellInfo(blockRow, blockCol, cellRow, cellCol, data)
-                    return <Cell key={`${cellRow}-${cellCol}`} info={info} />
+                    return (
+                      <Cell
+                        key={`${cellRow}-${cellCol}`}
+                        info={info}
+                        onCellClick={onCellClick}
+                      />
+                    )
                   }),
                 )}
               </div>
