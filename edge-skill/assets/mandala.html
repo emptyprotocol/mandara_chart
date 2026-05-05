@@ -29,12 +29,18 @@
     margin: 0 auto;
   }
   .title {
-    margin: 4px 0 10px;
+    margin: 4px 0 4px;
     font-size: 14px;
     font-weight: 700;
     text-align: center;
     color: #1a1a2e;
     word-break: break-word;
+  }
+  .hint-bar {
+    margin: 0 0 10px;
+    text-align: center;
+    font-size: 11px;
+    color: #6b7280;
   }
   .grid-container {
     container-type: inline-size;
@@ -56,6 +62,20 @@
     border: 2px solid #dee2e6;
     box-shadow: 0 1px 4px rgba(0,0,0,0.12);
     background: #dee2e6;
+    position: relative;
+  }
+  .block.empty-block { cursor: pointer; }
+  .block.empty-block::after {
+    content: '＋';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(20px, 7cqw, 56px);
+    color: rgba(0,0,0,0.18);
+    pointer-events: none;
+    font-weight: 300;
   }
   .cell {
     aspect-ratio: 1 / 1;
@@ -92,6 +112,11 @@
     color: var(--main-fg);
     border-color: var(--main-border);
   }
+  .cell.empty-action {
+    background: #fafafa;
+    border-style: dashed;
+    border-color: #d0d4dc;
+  }
   .toolbar {
     margin-top: 14px;
     display: flex;
@@ -104,7 +129,7 @@
     border: 1px solid #cfd4dc;
     background: #fff;
     color: #212529;
-    padding: 8px 14px;
+    padding: 9px 16px;
     border-radius: 999px;
     font-size: 13px;
     font-weight: 600;
@@ -113,6 +138,7 @@
   }
   .btn:active { transform: translateY(1px); }
   .btn.primary { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+  .btn.gold { background: #e2b96f; color: #1a1a2e; border-color: #e2b96f; }
   .err {
     color: #b00020;
     background: #fff5f5;
@@ -124,7 +150,6 @@
     line-height: 1.5;
   }
 
-  /* Modal: tap a cell to expand */
   .modal {
     position: fixed;
     inset: 0;
@@ -141,7 +166,7 @@
     border-radius: 16px;
     padding: 22px 18px;
     width: 100%;
-    max-width: 360px;
+    max-width: 380px;
     text-align: center;
     box-shadow: 0 10px 40px rgba(0,0,0,0.25);
   }
@@ -159,6 +184,45 @@
     word-break: break-word;
     margin: 6px 0 14px;
   }
+  .modal-prompt {
+    background: #f4f5f7;
+    border: 1px solid #e2e5ea;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #212529;
+    word-break: break-word;
+    margin-bottom: 14px;
+    text-align: left;
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  .modal-help {
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .modal-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .copied-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(40px);
+    background: rgba(26,26,46,0.95);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .copied-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 </style>
 </head>
 <body>
@@ -166,6 +230,7 @@
 <div id="root">
   <div class="wrap">
     <div class="title" id="title"></div>
+    <div class="hint-bar" id="hintBar"></div>
     <div class="grid-container">
       <div class="outer-grid" id="grid"></div>
     </div>
@@ -176,12 +241,10 @@
 </div>
 
 <div class="modal" id="modal">
-  <div class="modal-inner">
-    <div class="modal-label" id="modalLabel"></div>
-    <div class="modal-text" id="modalText"></div>
-    <button class="btn" id="modalClose">閉じる</button>
-  </div>
+  <div class="modal-inner" id="modalInner"></div>
 </div>
+
+<div class="copied-toast" id="toast"></div>
 
 <script>
   const POSITION_TO_INDEX = {
@@ -191,8 +254,36 @@
   };
   const THEME_HUES = [0, 30, 60, 120, 175, 210, 260, 320];
   const I18N = {
-    ja: { save: '画像として保存', close: '閉じる', main: 'メインテーマ', sub: 'サブテーマ', action: 'アクション', empty: 'データがありません', errParse: 'チャートデータの読み込みに失敗しました' },
-    en: { save: 'Save as image', close: 'Close', main: 'MAIN GOAL', sub: 'SUB-THEME', action: 'ACTION', empty: 'No chart data', errParse: 'Failed to load chart data' }
+    ja: {
+      save: '画像として保存',
+      close: '閉じる',
+      copy: 'コピー',
+      copied: 'コピーしました',
+      main: 'メインテーマ',
+      sub: 'サブテーマ',
+      action: 'アクション',
+      empty: 'データがありません',
+      errParse: 'チャートデータの読み込みに失敗しました',
+      hint: '＋ のブロックをタップしてアクションを生成',
+      fillTitle: 'アクションを生成',
+      fillHelp: '下の文をコピーしてチャットに貼り付けて送信してください。Gemma が「{theme}」のアクション 8 個を返してこのチャートに反映します。',
+      fillPrompt: '「{theme}」のアクション8つ',
+    },
+    en: {
+      save: 'Save as image',
+      close: 'Close',
+      copy: 'Copy',
+      copied: 'Copied',
+      main: 'MAIN GOAL',
+      sub: 'SUB-THEME',
+      action: 'ACTION',
+      empty: 'No chart data',
+      errParse: 'Failed to load chart data',
+      hint: 'Tap a ＋ block to generate its actions',
+      fillTitle: 'Generate actions',
+      fillHelp: 'Copy the line below, paste it into the chat, and send. Gemma will return 8 actions for "{theme}" and update this chart.',
+      fillPrompt: 'Actions for sub-theme: {theme}',
+    },
   };
 
   function hsl(h, l) { return 'hsl(' + h + ',65%,' + l + '%)'; }
@@ -207,6 +298,11 @@
 
   function showError(msg) {
     document.getElementById('root').innerHTML = '<div class="err">' + msg + '</div>';
+  }
+
+  function isSubEmpty(sub) {
+    if (!sub || !Array.isArray(sub.actions)) return true;
+    return sub.actions.every((a) => !a || !String(a).trim());
   }
 
   function getCellInfo(blockRow, blockCol, cellRow, cellCol, data) {
@@ -229,7 +325,7 @@
     return { text: sub.actions[actionIdx] || '', type: 'action', hue };
   }
 
-  function styleCell(cellEl, info) {
+  function styleCell(cellEl, info, isEmptyBlock) {
     cellEl.classList.add('cell');
     const span = document.createElement('span');
     span.className = 'cell-text';
@@ -243,10 +339,16 @@
       cellEl.style.color = '#fff';
       span.classList.add('cell-text-sub');
     } else {
-      cellEl.style.background = hsl(info.hue, 95);
-      cellEl.style.borderColor = hsl(info.hue, 80);
-      cellEl.style.color = hsl(info.hue, 22);
-      span.classList.add('cell-text-action');
+      // action cell
+      if (isEmptyBlock || !info.text) {
+        cellEl.classList.add('empty-action');
+        span.classList.add('cell-text-action');
+      } else {
+        cellEl.style.background = hsl(info.hue, 95);
+        cellEl.style.borderColor = hsl(info.hue, 80);
+        cellEl.style.color = hsl(info.hue, 22);
+        span.classList.add('cell-text-action');
+      }
     }
     cellEl.appendChild(span);
   }
@@ -260,17 +362,44 @@
         block.className = 'block';
         const isCenter = blockRow === 1 && blockCol === 1;
         const subIdx = isCenter ? -1 : POSITION_TO_INDEX[blockRow + ',' + blockCol];
+        const sub = subIdx >= 0 ? data.subThemes[subIdx] : null;
+        const blockEmpty = !isCenter && isSubEmpty(sub);
+
         if (isCenter) {
           block.style.borderColor = '#1a1a2e';
         } else if (subIdx >= 0) {
           block.style.borderColor = hsl(THEME_HUES[subIdx], 60);
         }
+        if (blockEmpty) {
+          block.classList.add('empty-block');
+          block.addEventListener('click', (e) => {
+            // Only trigger fill modal if we did NOT click on the centre sub-theme cell
+            const path = e.composedPath ? e.composedPath() : [e.target];
+            const onCentreCell = path.some((n) => n.classList && n.classList.contains('cell') && n.classList.contains('subtheme-centre'));
+            if (!onCentreCell) {
+              openFillModal(sub.theme, data, t);
+            }
+          });
+        }
+
         for (let cellRow = 0; cellRow < 3; cellRow++) {
           for (let cellCol = 0; cellCol < 3; cellCol++) {
             const info = getCellInfo(blockRow, blockCol, cellRow, cellCol, data);
             const cellEl = document.createElement('div');
-            styleCell(cellEl, info);
-            cellEl.addEventListener('click', () => openModal(info, t));
+            styleCell(cellEl, info, blockEmpty);
+            const isCentreSub = (cellRow === 1 && cellCol === 1) && info.type === 'subTheme';
+            if (isCentreSub) cellEl.classList.add('subtheme-centre');
+            cellEl.addEventListener('click', (e) => {
+              if (blockEmpty && !isCentreSub) {
+                e.stopPropagation();
+                openFillModal(sub.theme, data, t);
+              } else if (blockEmpty && isCentreSub) {
+                e.stopPropagation();
+                openFillModal(sub.theme, data, t);
+              } else {
+                openTextModal(info, t);
+              }
+            });
             block.appendChild(cellEl);
           }
         }
@@ -279,11 +408,44 @@
     }
   }
 
-  function openModal(info, t) {
+  function openTextModal(info, t) {
     if (!info.text) return;
     const label = info.type === 'main' ? t.main : info.type === 'subTheme' ? t.sub : t.action;
-    document.getElementById('modalLabel').textContent = label;
-    document.getElementById('modalText').textContent = info.text;
+    const inner = document.getElementById('modalInner');
+    inner.innerHTML =
+      '<div class="modal-label"></div>' +
+      '<div class="modal-text"></div>' +
+      '<button class="btn" id="modalClose"></button>';
+    inner.querySelector('.modal-label').textContent = label;
+    inner.querySelector('.modal-text').textContent = info.text;
+    inner.querySelector('#modalClose').textContent = t.close;
+    inner.querySelector('#modalClose').addEventListener('click', closeModal);
+    document.getElementById('modal').classList.add('show');
+  }
+
+  function openFillModal(themeText, data, t) {
+    const prompt = t.fillPrompt.replace('{theme}', themeText);
+    const help = t.fillHelp.replace('{theme}', themeText);
+    const inner = document.getElementById('modalInner');
+    inner.innerHTML =
+      '<div class="modal-label"></div>' +
+      '<div class="modal-text"></div>' +
+      '<div class="modal-help"></div>' +
+      '<div class="modal-prompt"></div>' +
+      '<div class="modal-row">' +
+      '  <button class="btn gold" id="modalCopy"></button>' +
+      '  <button class="btn" id="modalClose"></button>' +
+      '</div>';
+    inner.querySelector('.modal-label').textContent = t.fillTitle;
+    inner.querySelector('.modal-text').textContent = themeText;
+    inner.querySelector('.modal-help').textContent = help;
+    inner.querySelector('.modal-prompt').textContent = prompt;
+    inner.querySelector('#modalCopy').textContent = t.copy;
+    inner.querySelector('#modalClose').textContent = t.close;
+    inner.querySelector('#modalClose').addEventListener('click', closeModal);
+    inner.querySelector('#modalCopy').addEventListener('click', () => {
+      copyText(prompt).then(() => showToast(t.copied));
+    });
     document.getElementById('modal').classList.add('show');
   }
 
@@ -291,16 +453,40 @@
     document.getElementById('modal').classList.remove('show');
   }
 
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    }
+    return fallbackCopy(text);
+  }
+  function fallbackCopy(text) {
+    return new Promise((resolve) => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (_) {}
+      document.body.removeChild(ta);
+      resolve();
+    });
+  }
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 1400);
+  }
+
   async function saveAsImage(data) {
     const node = document.querySelector('.grid-container');
     const w = node.offsetWidth;
     const h = node.offsetHeight;
     const scale = 2;
-    const svgNS = 'http://www.w3.org/2000/svg';
-    // Use foreignObject to rasterize the DOM
     const xml = new XMLSerializer().serializeToString(node);
     const svg =
-      '<svg xmlns="' + svgNS + '" width="' + (w * scale) + '" height="' + (h * scale) + '" viewBox="0 0 ' + w + ' ' + h + '">' +
+      '<svg xmlns="http://www.w3.org/2000/svg" width="' + (w * scale) + '" height="' + (h * scale) + '" viewBox="0 0 ' + w + ' ' + h + '">' +
         '<foreignObject width="100%" height="100%">' +
           '<div xmlns="http://www.w3.org/1999/xhtml" style="font-family:\'Hiragino Kaku Gothic ProN\',Meiryo,sans-serif;">' +
             xml +
@@ -347,14 +533,16 @@
 
     document.getElementById('title').textContent = data.mainTheme || '';
     document.getElementById('saveBtn').textContent = t.save;
-    document.getElementById('modalClose').textContent = t.close;
+
+    // Show hint bar only when at least one outer block is empty
+    const hasEmpty = (data.subThemes || []).some(isSubEmpty);
+    document.getElementById('hintBar').textContent = hasEmpty ? t.hint : '';
 
     buildGrid(data, t);
 
     document.getElementById('saveBtn').addEventListener('click', () => {
       saveAsImage(data).catch((e) => alert('Save failed: ' + e.message));
     });
-    document.getElementById('modalClose').addEventListener('click', closeModal);
     document.getElementById('modal').addEventListener('click', (e) => {
       if (e.target.id === 'modal') closeModal();
     });

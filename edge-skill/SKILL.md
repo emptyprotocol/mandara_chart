@@ -7,22 +7,42 @@ metadata:
 
 # Mandala Chart
 
+Two-stage generation to keep latency low on mobile:
+1. **Initial**: emit only the main theme + 8 sub-themes (9 strings).
+2. **Refine**: when the user taps a sub-theme block and pastes the resulting prompt, emit the 8 actions for that single sub-theme.
+
 ## Examples
 - "マンダラチャート: 〇〇"
 - "Mandala chart for X"
+- "「学力」のアクション8つ"  (follow-up, requesting actions)
+- "Actions for sub-theme 〇〇"  (follow-up)
 
 ## Instructions
 
-Call `run_js` once with `data` set to a compact JSON string (no whitespace, single short keys):
+### Initial request — main theme phrasing
+
+Call `run_js` once with `data` as compact JSON, **no actions**:
 
 ```
-{"m":"GOAL","l":"ja","s":[{"t":"THEME","a":["A1","A2","A3","A4","A5","A6","A7","A8"]}, ... 8 entries total]}
+{"m":"GOAL","l":"ja","s":[{"t":"T1"},{"t":"T2"},{"t":"T3"},{"t":"T4"},{"t":"T5"},{"t":"T6"},{"t":"T7"},{"t":"T8"}]}
 ```
 
 - `m`: the goal (main theme), in the user's language.
 - `l`: `ja` or `en` matching the input.
-- `s`: array of 8 entries, each `{t, a}` — `t` is a sub-theme label, `a` is 8 short concrete actions covering that sub-theme.
+- `s`: array of 8 entries, each `{t}` only — `t` is a short sub-theme label covering a diverse angle (技術/体力/精神/人間性/運/感性/環境/習慣 etc.). **Do not generate the `a` (actions) arrays in this round.**
 
-Keep every string short. Cover diverse angles for `t` (技術/体力/精神/人間性/運/環境 …).
+### Follow-up request — single sub-theme actions
 
-After the tool call, **stop**. Output nothing else — no narration, no apology, no retry.
+When the user prompt names one sub-theme to fill (e.g. "「学力」のアクション8つ", "Actions for リスニング"), call `run_js` once with `data` as compact JSON containing the **complete chart**: the original main theme, all 8 sub-theme labels (carry them over from earlier in the conversation), and the `a` array filled in **only for the matching sub-theme**:
+
+```
+{"m":"GOAL","l":"ja","s":[{"t":"T1"},{"t":"T2","a":["A1","A2","A3","A4","A5","A6","A7","A8"]},{"t":"T3"}, ... ]}
+```
+
+Other sub-themes leave `a` out (they will render as placeholders again, ready to be tapped next).
+
+### Universal rules
+
+After the tool call, **stop**. Do not write any chat text — no commentary, no apology, no retry, even if the call returns an error. The gallery shows the result automatically.
+
+DO NOT use any other tool. DO NOT call `run_intent`.
