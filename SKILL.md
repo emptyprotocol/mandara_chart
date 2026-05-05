@@ -1,27 +1,28 @@
 ---
 name: mandala-chart
-description: Generate a 9x9 Mandala Chart (Ohtani-style) from a goal — 8 sub-themes and 64 actions rendered as an interactive grid. Supports Japanese and English. マンダラチャート（大谷翔平方式の目標達成シート）を生成します。
+description: Generate a 9x9 Mandala Chart (Ohtani-style) from a goal. Renders an interactive grid in the chat. Supports Japanese and English. マンダラチャート（大谷翔平方式の目標達成シート）を生成します。
 metadata:
   homepage: https://emptyprotocol.github.io/mandara_chart/
 ---
 
 # Mandala Chart
 
-A 9x9 grid (81 cells) goal-decomposition framework. Center cell holds the main goal, surrounded by 8 sub-themes; each sub-theme is the center of its own 3x3 block of 8 concrete actions.
-
 ## Examples
-- "マンダラチャートを作って: 〇〇"
-- "Make a mandala chart for becoming a lawyer"
+- "マンダラチャート: 〇〇"
+- "Mandala chart for X"
 
 ## Instructions
 
-Call `run_js` exactly once with `data` set to a JSON string containing:
-- `mainTheme` (string): the user's goal in their input language.
-- `language`: `"ja"` or `"en"` matching the input.
-- `subThemes`: an array of 8 entries; each entry is `{ theme, actions }` where `actions` is an array of 8 short concrete strings.
+Call `run_js` once with `data` set to a compact JSON string (no whitespace, single short keys):
 
-Sub-themes should cover diverse angles (技術/体力/精神/人間性/運/感性/環境/習慣).
+```
+{"m":"GOAL","l":"ja","s":[{"t":"THEME","a":["A1","A2","A3","A4","A5","A6","A7","A8"]}, ... 8 entries total]}
+```
 
-**After calling `run_js`, stop immediately. Do not write anything else.** The preview card and its result message are shown by the gallery automatically — any extra narration from you wastes tokens, slows the response, and can lock the chat. No apologies, no explanations, no retries even if the call returns an error.
+- `m`: the goal (main theme), in the user's language.
+- `l`: `ja` or `en` matching the input.
+- `s`: array of 8 entries, each `{t, a}` — `t` is a sub-theme label, `a` is 8 short concrete actions covering that sub-theme.
 
-DO NOT use any other tool. DO NOT call `run_intent`.
+Keep every string short. Cover diverse angles for `t` (技術/体力/精神/人間性/運/環境 …).
+
+After the tool call, **stop**. Output nothing else — no narration, no apology, no retry.
