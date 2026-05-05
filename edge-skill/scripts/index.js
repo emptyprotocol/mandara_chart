@@ -76,7 +76,7 @@ window['ai_edge_gallery_get_result'] = async (dataStr) => {
     + '&v=' + Date.now();
 
   return JSON.stringify({
-    webview: { url: fullUrl },
+    webview: { url: fullUrl, aspectRatio: 1.0 },
     result: lang === 'ja'
       ? 'マンダラチャートを生成しました。プレビューをタップして拡大表示できます。'
       : 'Generated your mandala chart. Tap the preview card to view it full-size.',
