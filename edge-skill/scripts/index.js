@@ -1,7 +1,7 @@
 window['ai_edge_gallery_get_result'] = async (dataStr) => {
-  // LLMs sometimes output common JSON-ish glitches. Try a few cleanup
-  // passes; never reject on size mismatches — pad/truncate instead — so
-  // the chat doesn't accumulate retries and stale preview cards.
+  // LLMs sometimes output common JSON-ish glitches; try a few cleanup
+  // passes. Always return a webview — never return an error — so the
+  // chat doesn't accumulate retries and stale preview cards.
   function tryParse(raw) {
     if (raw && typeof raw === 'object') return raw;
     if (typeof raw !== 'string') return null;
@@ -31,20 +31,32 @@ window['ai_edge_gallery_get_result'] = async (dataStr) => {
     return null;
   }
 
-  const parsed = tryParse(dataStr) || {};
-  const mainTheme = (typeof parsed.mainTheme === 'string' && parsed.mainTheme.trim())
-    ? parsed.mainTheme.trim()
-    : '(no theme)';
-  const lang = parsed.language === 'en' ? 'en' : 'ja';
+  // Accept either short keys (m/l/s/t/a — preferred for token economy)
+  // or long keys (mainTheme/language/subThemes/theme/actions — legacy).
+  function pick(obj, shortKey, longKey) {
+    if (obj == null) return undefined;
+    return obj[shortKey] !== undefined ? obj[shortKey] : obj[longKey];
+  }
 
-  // Coerce subThemes into exactly 8 entries × 8 actions, padding empties
-  // when the model returned a short list and trimming when it overshot.
-  const rawSubs = Array.isArray(parsed.subThemes) ? parsed.subThemes : [];
+  const parsed = tryParse(dataStr) || {};
+  const mtRaw = pick(parsed, 'm', 'mainTheme');
+  const langRaw = pick(parsed, 'l', 'language');
+  const subsRaw = pick(parsed, 's', 'subThemes');
+
+  const mainTheme = (typeof mtRaw === 'string' && mtRaw.trim())
+    ? mtRaw.trim()
+    : '(no theme)';
+  const lang = langRaw === 'en' ? 'en' : 'ja';
+
+  // Coerce to exactly 8 entries × 8 actions; pad short, trim long.
+  const rawSubs = Array.isArray(subsRaw) ? subsRaw : [];
   const subThemes = [];
   for (let i = 0; i < 8; i++) {
     const s = rawSubs[i] || {};
-    const theme = (typeof s.theme === 'string' && s.theme.trim()) ? s.theme.trim() : '';
-    const rawActions = Array.isArray(s.actions) ? s.actions : [];
+    const themeRaw = pick(s, 't', 'theme');
+    const actsRaw = pick(s, 'a', 'actions');
+    const theme = (typeof themeRaw === 'string' && themeRaw.trim()) ? themeRaw.trim() : '';
+    const rawActions = Array.isArray(actsRaw) ? actsRaw : [];
     const actions = [];
     for (let j = 0; j < 8; j++) {
       const a = rawActions[j];
@@ -53,13 +65,11 @@ window['ai_edge_gallery_get_result'] = async (dataStr) => {
     subThemes.push({ theme, actions });
   }
 
+  // Internal payload uses long keys (mandala.html expects them).
   const payload = { mainTheme, language: lang, subThemes };
   const json = JSON.stringify(payload);
   const b64 = btoa(unescape(encodeURIComponent(json)));
 
-  // Pass the (short) main theme + language as separate query params so the
-  // preview card can render instantly without decoding the heavy d= blob.
-  // The preview card forwards d= verbatim to mandala.html on tap.
   const fullUrl = 'preview.html?t=' + encodeURIComponent(mainTheme)
     + '&l=' + lang
     + '&d=' + encodeURIComponent(b64)
