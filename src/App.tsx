@@ -13,18 +13,59 @@ import { MandalaData, GenerationStatus } from './types/mandala'
 let nodeCounter = 0
 const newId = () => `n${++nodeCounter}_${Date.now().toString(36)}`
 
+const STORAGE_KEY = 'mandara_chart_v1'
+
+interface PersistedState {
+  nodes: Record<string, TreeNode>
+  currentNodeId: string | null
+  mainTheme: string
+}
+
+function loadPersisted(): PersistedState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as PersistedState
+    if (!parsed || typeof parsed !== 'object' || !parsed.nodes) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
 export default function App() {
-  const [mainTheme, setMainTheme] = useState('')
+  const persisted = useMemo(() => loadPersisted(), [])
+
+  const [mainTheme, setMainTheme] = useState(persisted?.mainTheme ?? '')
   const [models, setModels] = useState<string[]>([])
   const [selectedModel, setSelectedModel] = useState('')
-  const [status, setStatus] = useState<GenerationStatus>('idle')
+  const [status, setStatus] = useState<GenerationStatus>(
+    persisted?.currentNodeId ? 'done' : 'idle',
+  )
   const [error, setError] = useState<string | null>(null)
   const [progressText, setProgressText] = useState('')
-  const [data, setData] = useState<MandalaData | null>(null)
+  const [data, setData] = useState<MandalaData | null>(
+    persisted?.currentNodeId && persisted.nodes[persisted.currentNodeId]
+      ? persisted.nodes[persisted.currentNodeId].data
+      : null,
+  )
 
   // ツリー履歴
-  const [nodes, setNodes] = useState<Record<string, TreeNode>>({})
-  const [currentNodeId, setCurrentNodeId] = useState<string | null>(null)
+  const [nodes, setNodes] = useState<Record<string, TreeNode>>(persisted?.nodes ?? {})
+  const [currentNodeId, setCurrentNodeId] = useState<string | null>(
+    persisted?.currentNodeId ?? null,
+  )
+
+  // localStorage に永続化（生成中は保存しない＝中途状態を残さない）
+  useEffect(() => {
+    if (status === 'generating-themes' || status === 'generating-actions') return
+    try {
+      const payload: PersistedState = { nodes, currentNodeId, mainTheme }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+    } catch {
+      // quota超過などは無視
+    }
+  }, [nodes, currentNodeId, mainTheme, status])
 
   useEffect(() => {
     listModels()
@@ -186,12 +227,12 @@ export default function App() {
     }
   }, [nodes, currentNodeId, handleNodeClick])
 
+  // 現在表示中のチャートのみクリア（履歴ツリーは残す）
   const handleReset = () => {
     setData(null)
     setStatus('idle')
     setError(null)
     setProgressText('')
-    setNodes({})
     setCurrentNodeId(null)
     setMainTheme('')
   }
