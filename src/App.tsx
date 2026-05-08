@@ -227,15 +227,14 @@ export default function App() {
     }
   }, [nodes, currentNodeId, handleNodeClick])
 
+  // 現在表示中のチャートのみクリア（履歴ツリーは残す）
   const handleReset = () => {
     setData(null)
     setStatus('idle')
     setError(null)
     setProgressText('')
-    setNodes({})
     setCurrentNodeId(null)
     setMainTheme('')
-    try { localStorage.removeItem(STORAGE_KEY) } catch { /* noop */ }
   }
 
   // ルートノード（parentId が null）
